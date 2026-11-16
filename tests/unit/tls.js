@@ -1,0 +1,788 @@
+var ASSERT = require('assert');
+var forge = require('../../lib/forge');
+require('../../lib/tls');
+require('../../lib/aesCipherSuites');
+require('../../lib/util');
+
+(function() {
+  describe('tls', function() {
+    it('should test TLS 1.0 PRF', function() {
+      // Note: This test vector is originally from:
+      // http://www.imc.org/ietf-tls/mail-archive/msg01589.html
+      // But that link is now dead.
+      var secret = forge.util.createBuffer().fillWithByte(0xAB, 48).getBytes();
+      var seed = forge.util.createBuffer().fillWithByte(0xCD, 64).getBytes();
+      var bytes = forge.tls.prf_tls1(secret, 'PRF Testvector', seed, 104);
+      var expect =
+        'd3d4d1e349b5d515044666d51de32bab258cb521' +
+        'b6b053463e354832fd976754443bcf9a296519bc' +
+        '289abcbc1187e4ebd31e602353776c408aafb74c' +
+        'bc85eff69255f9788faa184cbb957a9819d84a5d' +
+        '7eb006eb459d3ae8de9810454b8b2d8f1afbc655' +
+        'a8c9a013';
+      ASSERT.equal(bytes.toHex(), expect);
+    });
+
+    it('should establish a TLS connection and transfer data', function(done) {
+      var end = {};
+      var data = {};
+
+      createCertificate('server', data);
+      createCertificate('client', data);
+      data.client.connection = {};
+      data.server.connection = {};
+
+      end.client = forge.tls.createConnection({
+        server: false,
+        caStore: [data.server.cert],
+        sessionCache: {},
+        cipherSuites: [
+          forge.tls.CipherSuites.TLS_RSA_WITH_AES_128_CBC_SHA,
+          forge.tls.CipherSuites.TLS_RSA_WITH_AES_256_CBC_SHA],
+        virtualHost: 'server',
+        verify: function(c, verified, depth, certs) {
+          data.client.connection.commonName =
+            certs[0].subject.getField('CN').value;
+          data.client.connection.certVerified = verified;
+          return true;
+        },
+        connected: function(c) {
+          c.prepare('Hello Server');
+        },
+        getCertificate: function(c, hint) {
+          return data.client.cert;
+        },
+        getPrivateKey: function(c, cert) {
+          return data.client.privateKey;
+        },
+        tlsDataReady: function(c) {
+          end.server.process(c.tlsData.getBytes());
+        },
+        dataReady: function(c) {
+          data.client.connection.data = c.data.getBytes();
+          c.close();
+        },
+        closed: function(c) {
+          ASSERT.equal(data.client.connection.commonName, 'server');
+          ASSERT.equal(data.client.connection.certVerified, true);
+          ASSERT.equal(data.client.connection.data, 'Hello Client');
+          done();
+        },
+        error: function(c, error) {
+          ASSERT.equal(error.message, undefined);
+        }
+      });
+
+      end.server = forge.tls.createConnection({
+        server: true,
+        caStore: [data.client.cert],
+        sessionCache: {},
+        cipherSuites: [
+          forge.tls.CipherSuites.TLS_RSA_WITH_AES_128_CBC_SHA,
+          forge.tls.CipherSuites.TLS_RSA_WITH_AES_256_CBC_SHA],
+        connected: function(c) {
+        },
+        verifyClient: true,
+        verify: function(c, verified, depth, certs) {
+          data.server.connection.commonName =
+            certs[0].subject.getField('CN').value;
+          data.server.connection.certVerified = verified;
+          return true;
+        },
+        getCertificate: function(c, hint) {
+          data.server.connection.certHint = hint[0];
+          return data.server.cert;
+        },
+        getPrivateKey: function(c, cert) {
+          return data.server.privateKey;
+        },
+        tlsDataReady: function(c) {
+          end.client.process(c.tlsData.getBytes());
+        },
+        dataReady: function(c) {
+          data.server.connection.data = c.data.getBytes();
+          c.prepare('Hello Client');
+          c.close();
+        },
+        closed: function(c) {
+          ASSERT.equal(data.server.connection.certHint, 'server');
+          ASSERT.equal(data.server.connection.commonName, 'client');
+          ASSERT.equal(data.server.connection.certVerified, true);
+          ASSERT.equal(data.server.connection.data, 'Hello Server');
+        },
+        error: function(c, error) {
+          ASSERT.equal(error.message, undefined);
+        }
+      });
+
+      end.client.handshake();
+
+      function createCertificate(cn, data) {
+        var keys = forge.pki.rsa.generateKeyPair(512);
+        var cert = forge.pki.createCertificate();
+        cert.publicKey = keys.publicKey;
+        cert.serialNumber = '01';
+        cert.validity.notBefore = new Date();
+        cert.validity.notAfter = new Date();
+        cert.validity.notAfter.setFullYear(
+          cert.validity.notBefore.getFullYear() + 1);
+        var attrs = [{
+          name: 'commonName',
+          value: cn
+        }, {
+          name: 'countryName',
+          value: 'US'
+        }, {
+          shortName: 'ST',
+          value: 'Virginia'
+        }, {
+          name: 'localityName',
+          value: 'Blacksburg'
+        }, {
+          name: 'organizationName',
+          value: 'Test'
+        }, {
+          shortName: 'OU',
+          value: 'Test'
+        }];
+        cert.setSubject(attrs);
+        cert.setIssuer(attrs);
+        cert.setExtensions([{
+          name: 'basicConstraints',
+          cA: true
+        }, {
+          name: 'keyUsage',
+          keyCertSign: true,
+          digitalSignature: true,
+          nonRepudiation: true,
+          keyEncipherment: true,
+          dataEncipherment: true
+        }, {
+          name: 'subjectAltName',
+          altNames: [{
+            type: 6, // URI
+            value: 'https://myuri.com/webid#me'
+          }]
+        }]);
+        cert.sign(keys.privateKey);
+        data[cn] = {
+          cert: forge.pki.certificateToPem(cert),
+          privateKey: forge.pki.privateKeyToPem(keys.privateKey)
+        };
+      }
+    });
+
+    // see GHSA-hqq3-7jhf-c5jx
+    describe('record processing', function() {
+      // enough records to exhaust the call stack if each record is handled
+      // one call level deeper than the previous one
+      var COUNT = 50000;
+
+      // heartbeat_request and heartbeat_response with empty payloads
+      var HB_REQUEST = forge.util.hexToBytes('1803010003010000');
+      var HB_RESPONSE = forge.util.hexToBytes('1803010003020000');
+      // fatal handshake_failure alert
+      var ALERT = forge.util.hexToBytes('15030100020228');
+
+      function repeat(bytes, count) {
+        var b = forge.util.createBuffer();
+        for(var i = 0; i < count; ++i) {
+          b.putBytes(bytes);
+        }
+        return b.getBytes();
+      }
+
+      // TLS 1.0 record
+      function record(type, fragment) {
+        var b = forge.util.createBuffer();
+        b.putByte(type);
+        b.putByte(3);
+        b.putByte(1);
+        b.putInt16(fragment.length);
+        b.putBytes(fragment);
+        return b.getBytes();
+      }
+
+      function createConnection(server, log) {
+        return forge.tls.createConnection({
+          server: server,
+          verify: function() {
+            return true;
+          },
+          tlsDataReady: function(c) {
+            c.tlsData.getBytes();
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          heartbeatReceived: function() {
+            log.heartbeats++;
+            if(log.heartbeats === 1 && log.throwOnFirstHeartbeat) {
+              throw new Error('heartbeat callback failed');
+            }
+          },
+          closed: function() {},
+          error: function(c, error) {
+            log.errors.push(error.message);
+          }
+        });
+      }
+
+      it('should process many heartbeat records as server', function() {
+        var log = {heartbeats: 0, errors: []};
+        var c = createConnection(true, log);
+        var rval = c.process(repeat(HB_RESPONSE, COUNT) + ALERT);
+        ASSERT.equal(rval, 0);
+        // the alert after all heartbeat records was processed
+        ASSERT.deepEqual(log.errors, ['Handshake failure.']);
+      });
+
+      it('should process many heartbeat records as client', function() {
+        var log = {heartbeats: 0, errors: []};
+        var c = createConnection(false, log);
+        c.handshake();
+        var rval = c.process(repeat(HB_REQUEST, COUNT) + ALERT);
+        ASSERT.equal(rval, 0);
+        ASSERT.deepEqual(log.errors, ['Handshake failure.']);
+      });
+
+      it('should process a message fragmented over many records', function() {
+        var log = {heartbeats: 0, errors: []};
+        var c = createConnection(true, log);
+        // ClientHello header announcing a 16 MiB message, then many 1-byte
+        // fragments of it
+        var data = record(22, forge.util.hexToBytes('01ffffff')) +
+          repeat(record(22, '\x00'), COUNT);
+        var rval = c.process(data);
+        ASSERT.equal(rval, 0);
+        ASSERT.deepEqual(log.errors, []);
+        // all records were read
+        ASSERT.equal(c.input.length(), 0);
+      });
+
+      it('should process many handshake messages per record', function() {
+        var log = {heartbeats: 0, errors: []};
+        var c = createConnection(false, log);
+        c.handshake();
+        // ServerHello: TLS 1.0, new session, TLS_RSA_WITH_AES_128_CBC_SHA
+        var b = forge.util.createBuffer();
+        b.putBytes(forge.util.hexToBytes('0301'));
+        b.fillWithByte(0, 32);
+        b.putBytes(forge.util.hexToBytes('00002f00'));
+        var serverHello = forge.util.hexToBytes('02') +
+          forge.util.int32ToBytes(b.length()).substr(1) + b.getBytes();
+        // records full of 4-byte HelloRequest messages
+        var helloRequests = repeat(
+          record(22, repeat(forge.util.hexToBytes('00000000'), 4096)),
+          Math.ceil(COUNT / 4096));
+        var rval = c.process(record(22, serverHello) + helloRequests + ALERT);
+        ASSERT.equal(rval, 0);
+        ASSERT.deepEqual(log.errors, ['Handshake failure.']);
+      });
+
+      it('should process records split across calls', function() {
+        var log = {heartbeats: 0, errors: []};
+        var c = createConnection(true, log);
+        var data = repeat(HB_RESPONSE, 3) + ALERT;
+        var rvals = [];
+        for(var i = 0; i < data.length; ++i) {
+          rvals.push(c.process(data.charAt(i)));
+        }
+        // bytes needed for the next header or fragment, 0 when complete
+        ASSERT.deepEqual(rvals.slice(0, 8), [4, 3, 2, 1, 3, 2, 1, 0]);
+        ASSERT.deepEqual(log.errors, ['Handshake failure.']);
+      });
+
+      it('should continue processing after a callback throws', function() {
+        var log = {heartbeats: 0, errors: [], throwOnFirstHeartbeat: true};
+        var c = createConnection(false, log);
+        c.prepareHeartbeatRequest('');
+        ASSERT.throws(function() {
+          c.process(repeat(HB_RESPONSE, 2) + ALERT);
+        }, /heartbeat callback failed/);
+        ASSERT.equal(log.heartbeats, 1);
+        ASSERT.deepEqual(log.errors, []);
+        // the remaining buffered records are still processed
+        ASSERT.equal(c.process(), 0);
+        ASSERT.equal(log.heartbeats, 2);
+        ASSERT.deepEqual(log.errors, ['Handshake failure.']);
+      });
+    });
+
+    // see GHSA-8hrf-8g6f-7xwp
+    describe('fragmented handshake messages', function() {
+      // TLS 1.0 record
+      function record(type, fragment) {
+        var b = forge.util.createBuffer();
+        b.putByte(type);
+        b.putByte(3);
+        b.putByte(1);
+        b.putInt16(fragment.length);
+        b.putBytes(fragment);
+        return b.getBytes();
+      }
+
+      function createConnection(server, log) {
+        var c = forge.tls.createConnection({
+          server: server,
+          verify: function() {
+            return true;
+          },
+          tlsDataReady: function(c) {
+            log.sent += c.tlsData.getBytes();
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          closed: function() {},
+          error: function(c, error) {
+            log.errors.push(error.message);
+          }
+        });
+        if(!server) {
+          c.handshake();
+          // drop the ClientHello
+          log.sent = '';
+        }
+        return c;
+      }
+
+      // start of a handshake message (ClientHello or ServerHello) announcing
+      // more bytes than the record holds
+      function firstFragment(server) {
+        return record(22, forge.util.hexToBytes(
+          (server ? '01' : '02') + '000010' + '0301'));
+      }
+
+      var interleaved = {
+        change_cipher_spec: record(20, '\x01'),
+        alert: record(21, forge.util.hexToBytes('0228')),
+        application_data: record(23, 'data'),
+        heartbeat: record(24, forge.util.hexToBytes('010000'))
+      };
+
+      [true, false].forEach(function(server) {
+        var mode = server ? 'server' : 'client';
+        Object.keys(interleaved).forEach(function(name) {
+          it('should fail on ' + name + ' in a fragmented message (' + mode +
+            ')', function() {
+            var log = {sent: '', errors: []};
+            var c = createConnection(server, log);
+            ASSERT.doesNotThrow(function() {
+              c.process(firstFragment(server) + interleaved[name]);
+            });
+            ASSERT.deepEqual(log.errors, ['Invalid fragmented record.']);
+            ASSERT.equal(c.fail, true);
+            // fatal unexpected_message alert
+            var alert = forge.util.createBuffer(log.sent);
+            ASSERT.equal(alert.getByte(), 21);
+            alert.getBytes(4);
+            ASSERT.equal(alert.bytes(), forge.util.hexToBytes('020a'));
+            // further input is ignored
+            ASSERT.equal(c.process(interleaved[name]), 0);
+            ASSERT.deepEqual(log.errors, ['Invalid fragmented record.']);
+          });
+        });
+
+        it('should accept continuation records (' + mode + ')', function() {
+          var log = {sent: '', errors: []};
+          var c = createConnection(server, log);
+          var rval = c.process(firstFragment(server) + record(22, '\x00'));
+          ASSERT.equal(rval, 0);
+          ASSERT.deepEqual(log.errors, []);
+          ASSERT.equal(c.fail, false);
+          ASSERT.equal(log.sent, '');
+        });
+      });
+    });
+
+    describe('missing server certificate', function() {
+      // see GHSA-525v-9gp9-w22h
+      // drop handshake messages of a type from plaintext TLS records
+      function _dropMessages(bytes, type) {
+        var b = forge.util.createBuffer(bytes);
+        var out = '';
+        while(b.length() > 0) {
+          var contentType = b.getByte();
+          var version = b.getBytes(2);
+          var fragment = b.getBytes(b.getInt16());
+          if(contentType === forge.tls.ContentType.handshake) {
+            var h = forge.util.createBuffer(fragment);
+            fragment = '';
+            while(h.length() > 0) {
+              var msgType = h.getByte();
+              var length = h.getInt24();
+              var body = h.getBytes(length);
+              if(msgType !== type) {
+                fragment += String.fromCharCode(msgType) +
+                  forge.util.int32ToBytes(length).substr(1) + body;
+              }
+            }
+          }
+          out += String.fromCharCode(contentType) + version +
+            forge.util.int32ToBytes(fragment.length).substr(2) + fragment;
+        }
+        return out;
+      }
+
+      var keys = forge.pki.rsa.generateKeyPair(512);
+      var cert = forge.pki.createCertificate();
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = '01';
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(
+        cert.validity.notBefore.getFullYear() + 1);
+      cert.setSubject([{name: 'commonName', value: 'server'}]);
+      cert.setIssuer([{name: 'commonName', value: 'server'}]);
+      cert.sign(keys.privateKey);
+      var serverCert = forge.pki.certificateToPem(cert);
+      var serverKey = forge.pki.privateKeyToPem(keys.privateKey);
+
+      [false, true].forEach(function(accept) {
+        it('should fail when the server sends no certificate (verify ' +
+          (accept ? 'accepts' : 'rejects') + ')', function() {
+          var end = {};
+          var verified = [];
+          var errors = [];
+          end.client = forge.tls.createConnection({
+            server: false,
+            caStore: [serverCert],
+            verify: function(c, status, depth, certs) {
+              verified.push([status, depth, certs.length]);
+              return accept ? true : status;
+            },
+            connected: function() {},
+            tlsDataReady: function(c) {
+              end.server.process(c.tlsData.getBytes());
+            },
+            dataReady: function() {},
+            closed: function() {},
+            error: function(c, error) {
+              errors.push(error.message);
+            }
+          });
+          end.server = forge.tls.createConnection({
+            server: true,
+            getCertificate: function() {
+              return serverCert;
+            },
+            getPrivateKey: function() {
+              return serverKey;
+            },
+            connected: function() {},
+            tlsDataReady: function(c) {
+              // remove the Certificate message
+              end.client.process(_dropMessages(c.tlsData.getBytes(),
+                forge.tls.HandshakeType.certificate));
+            },
+            dataReady: function() {},
+            closed: function() {},
+            error: function() {}
+          });
+
+          end.client.handshake();
+          ASSERT.deepEqual(verified, [[
+            forge.tls.Alert.Description.insufficient_security, 0, 0]]);
+          ASSERT.deepEqual(errors,
+            ['No server certificate provided. Not enough security.']);
+          ASSERT.equal(end.client.fail, true);
+          ASSERT.equal(end.client.isConnected, false);
+        });
+      });
+    });
+
+    describe('ServerHello compression method', function() {
+      // see GHSA-w4xr-hqv8-ch44
+      // set the compression method of the ServerHello in plaintext TLS
+      // records (ServerHello body: version, random, session_id,
+      // cipher_suite, compression_method)
+      function _setCompressionMethod(bytes, method) {
+        var b = forge.util.createBuffer(bytes);
+        var out = '';
+        while(b.length() > 0) {
+          var header = b.getBytes(3);
+          var fragment = b.getBytes(b.getInt16());
+          if(header.charCodeAt(0) === forge.tls.ContentType.handshake &&
+            fragment.charCodeAt(0) === forge.tls.HandshakeType.server_hello) {
+            var offset = 4 + 2 + 32;
+            offset += 1 + fragment.charCodeAt(offset) + 2;
+            fragment = fragment.substr(0, offset) +
+              String.fromCharCode(method) + fragment.substr(offset + 1);
+          }
+          out += header + forge.util.int32ToBytes(fragment.length).substr(2) +
+            fragment;
+        }
+        return out;
+      }
+
+      var keys = forge.pki.rsa.generateKeyPair(512);
+      var cert = forge.pki.createCertificate();
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = '01';
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(
+        cert.validity.notBefore.getFullYear() + 1);
+      cert.setSubject([{name: 'commonName', value: 'server'}]);
+      cert.setIssuer([{name: 'commonName', value: 'server'}]);
+      cert.sign(keys.privateKey);
+      var serverCert = forge.pki.certificateToPem(cert);
+      var serverKey = forge.pki.privateKeyToPem(keys.privateKey);
+
+      function _handshake(method) {
+        var end = {};
+        var log = {connected: false, errors: []};
+        var first = true;
+        var clientFlights = 0;
+        end.client = forge.tls.createConnection({
+          server: false,
+          caStore: [serverCert],
+          verify: function(c, verified) {
+            return verified;
+          },
+          connected: function() {
+            log.connected = true;
+          },
+          tlsDataReady: function(c) {
+            var bytes = c.tlsData.getBytes();
+            // when the handshake should fail, only send the ClientHello, so
+            // the server's reaction to the client's alert doesn't reach the
+            // client while it is still processing the ServerHello
+            if(clientFlights++ === 0 ||
+              method === forge.tls.CompressionMethod.none) {
+              end.server.process(bytes);
+            }
+          },
+          dataReady: function() {},
+          closed: function() {},
+          error: function(c, error) {
+            log.errors.push(error.message);
+          }
+        });
+        end.server = forge.tls.createConnection({
+          server: true,
+          getCertificate: function() {
+            return serverCert;
+          },
+          getPrivateKey: function() {
+            return serverKey;
+          },
+          connected: function() {},
+          tlsDataReady: function(c) {
+            var bytes = c.tlsData.getBytes();
+            if(first) {
+              // change the server's first flight
+              first = false;
+              bytes = _setCompressionMethod(bytes, method);
+            }
+            end.client.process(bytes);
+          },
+          dataReady: function() {},
+          closed: function() {},
+          error: function() {}
+        });
+        end.client.handshake();
+        log.fail = end.client.fail;
+        return log;
+      }
+
+      it('should connect with no compression', function() {
+        var log = _handshake(forge.tls.CompressionMethod.none);
+        ASSERT.deepEqual(log.errors, []);
+        ASSERT.equal(log.connected, true);
+      });
+
+      [forge.tls.CompressionMethod.deflate, 0xff].forEach(function(method) {
+        it('should fail on compression method ' + method, function() {
+          var log = _handshake(method);
+          ASSERT.deepEqual(log.errors, ['Unsupported compression method.']);
+          ASSERT.equal(log.fail, true);
+          ASSERT.equal(log.connected, false);
+        });
+      });
+    });
+
+    describe('heartbeat', function() {
+      // heartbeat_request with payload 'abc'
+      var REQUEST = forge.util.hexToBytes('1803010006010003616263');
+
+      function createConnection(server, log) {
+        return forge.tls.createConnection({
+          server: server,
+          verify: function() {
+            return true;
+          },
+          tlsDataReady: function(c) {
+            log.sent += c.tlsData.getBytes();
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          closed: function() {},
+          error: function(c, error) {
+            log.errors.push(error.message);
+          }
+        });
+      }
+
+      it('should ignore heartbeat requests before a handshake', function() {
+        // server before ClientHello, client before handshake()
+        [true, false].forEach(function(server) {
+          var log = {sent: '', errors: []};
+          var c = createConnection(server, log);
+          ASSERT.equal(c.process(REQUEST + REQUEST), 0);
+          ASSERT.equal(log.sent, '');
+          ASSERT.deepEqual(log.errors, []);
+        });
+      });
+
+      it('should ignore heartbeat requests during a handshake', function() {
+        var log = {sent: '', errors: []};
+        var c = createConnection(false, log);
+        c.handshake();
+        log.sent = '';
+        ASSERT.equal(c.process(REQUEST), 0);
+        ASSERT.equal(log.sent, '');
+        ASSERT.deepEqual(log.errors, []);
+      });
+
+      it('should exchange heartbeats after a handshake', function(done) {
+        var keys = forge.pki.rsa.generateKeyPair(512);
+        var cert = forge.pki.createCertificate();
+        cert.publicKey = keys.publicKey;
+        cert.serialNumber = '01';
+        cert.validity.notBefore = new Date();
+        cert.validity.notAfter = new Date();
+        cert.validity.notAfter.setFullYear(
+          cert.validity.notBefore.getFullYear() + 1);
+        var attrs = [{name: 'commonName', value: 'server'}];
+        cert.setSubject(attrs);
+        cert.setIssuer(attrs);
+        cert.sign(keys.privateKey);
+        var pem = forge.pki.certificateToPem(cert);
+
+        var end = {};
+        var received = {};
+        end.client = forge.tls.createConnection({
+          server: false,
+          caStore: [pem],
+          verify: function(c, verified) {
+            return verified;
+          },
+          connected: function(c) {
+            c.prepareHeartbeatRequest('from client');
+          },
+          tlsDataReady: function(c) {
+            end.server.process(c.tlsData.getBytes());
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          heartbeatReceived: function(c, payload) {
+            received.client = payload.getBytes();
+            end.server.prepareHeartbeatRequest('from server');
+          },
+          closed: function() {},
+          error: function(c, error) {
+            ASSERT.equal(error.message, undefined);
+          }
+        });
+        end.server = forge.tls.createConnection({
+          server: true,
+          getCertificate: function() {
+            return pem;
+          },
+          getPrivateKey: function() {
+            return forge.pki.privateKeyToPem(keys.privateKey);
+          },
+          connected: function() {},
+          tlsDataReady: function(c) {
+            end.client.process(c.tlsData.getBytes());
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          heartbeatReceived: function(c, payload) {
+            received.server = payload.getBytes();
+            ASSERT.equal(received.client, 'from client');
+            ASSERT.equal(received.server, 'from server');
+            done();
+          },
+          closed: function() {},
+          error: function(c, error) {
+            ASSERT.equal(error.message, undefined);
+          }
+        });
+        end.client.handshake();
+      });
+    });
+
+    describe('client without a session', function() {
+      // see GHSA-j8rw-jp99-435v
+      // warning close_notify alert
+      var CLOSE_NOTIFY = forge.util.hexToBytes('15030100020100');
+      // ServerHello with an empty body
+      var SERVER_HELLO = forge.util.hexToBytes('160301000402000000');
+
+      function createConnection(log) {
+        return forge.tls.createConnection({
+          server: false,
+          verify: function() {
+            return true;
+          },
+          tlsDataReady: function(c) {
+            c.tlsData.getBytes();
+          },
+          dataReady: function(c) {
+            c.data.getBytes();
+          },
+          closed: function() {
+            log.closed++;
+          },
+          error: function(c, error) {
+            log.errors.push(error.message);
+          }
+        });
+      }
+
+      it('should ignore a ServerHello before handshake()', function() {
+        var log = {closed: 0, errors: []};
+        var c = createConnection(log);
+        c.process(SERVER_HELLO);
+        ASSERT.deepEqual(log.errors, []);
+      });
+
+      it('should ignore a ServerHello after close_notify', function() {
+        var log = {closed: 0, errors: []};
+        var c = createConnection(log);
+        c.handshake();
+        c.process(CLOSE_NOTIFY);
+        ASSERT.equal(log.closed, 1);
+        c.process(SERVER_HELLO);
+        ASSERT.deepEqual(log.errors, []);
+      });
+
+      it('should ignore a ServerHello after close()', function() {
+        var log = {closed: 0, errors: []};
+        var c = createConnection(log);
+        c.handshake();
+        c.close();
+        ASSERT.equal(log.closed, 1);
+        c.process(SERVER_HELLO);
+        ASSERT.deepEqual(log.errors, []);
+      });
+
+      it('should handle a ServerHello after a new handshake()', function() {
+        var log = {closed: 0, errors: []};
+        var c = createConnection(log);
+        c.handshake();
+        c.close();
+        c.handshake();
+        c.process(SERVER_HELLO);
+        ASSERT.equal(log.errors.length, 1);
+        ASSERT.ok(/ServerHello/.test(log.errors[0]), log.errors[0]);
+      });
+    });
+  });
+})();
