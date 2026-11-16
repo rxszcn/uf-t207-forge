@@ -1370,6 +1370,28 @@ var pem = forge.pkcs7.messageToPem(p7);
 // Includes the signature and certificate without the signed data.
 p7.sign({detached: true});
 
+// parse a signed message (for example, produced by OpenSSL); this populates
+// p7.signers from the SignerInfos so that they can be inspected
+var p7 = forge.pkcs7.messageFromPem(pem);
+for(var i = 0; i < p7.signers.length; ++i) {
+  // p7.signers[i].issuer, .serialNumber, .digestAlgorithm,
+  // .authenticatedAttributes, ...
+}
+
+// verify the signatures on an attached signed message; returns one result
+// per signer with digestValid, contentTypeValid, signatureValid and verified
+var results = p7.verify();
+if(!results.every(function(result) {return result.verified;})) {
+  throw new Error('PKCS#7 signature verification failed.');
+}
+
+// verify a detached signature; the content is supplied by the caller
+var p7 = forge.pkcs7.messageFromPem(detachedPem);
+var results = p7.verify({content: contentBuffer});
+
+// verify when the signer's certificate is not included in the message
+var results = p7.verify({content: contentBuffer, certificate: cert});
+
 ```
 
 <a name="pkcs8" />

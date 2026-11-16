@@ -1,6 +1,36 @@
 Forge ChangeLog
 ===============
 
+## 1.4.4 - TBD
+
+### Added
+- `pkcs7`: PKCS#7 SignedData signature verification.
+  - `p7.verify([options])` verifies every signer of a `SignedData` message and
+    returns one result per signer with `digestValid`, `contentTypeValid`,
+    `signatureValid` and `verified` flags. It supports attached and detached
+    signatures (`options.content`), messages whose signer certificate is not
+    embedded (`options.certificate`), and the `rsaEncryption` /
+    `sha*WithRSAEncryption` signature algorithms.
+  - `p7.verify()` previously always threw "not yet implemented".
+- `pkcs7`: SignerInfos are parsed when importing a `SignedData` message, so
+  `p7.signers` is populated for messages produced by other tools (eg:
+  OpenSSL) and not only by `p7.sign()`.
+- `pkcs7`: `messageFromPem()` accepts a `CMS` PEM header, as written by
+  `openssl cms`.
+- `pkcs7`: an imported `SignedData` message keeps its ContentInfo, digest
+  algorithm identifiers and signer infos, so that it can be re-serialized with
+  `messageToPem()` without signing it again.
+
+### Fixed
+- `pkcs7`: the `SignerInfo` ASN.1 validator was not exported, which made all
+  signer parsing fail; its `version`, `signatureAlgorithm` and
+  `authenticatedAttributes` captures now use distinct names and, for the
+  attributes, also capture the ASN.1 needed to verify the signature.
+- `pkcs7`: the content of an imported `SignedData` message is now read from
+  the `[0] EXPLICIT` ContentInfo wrapper (it was always empty before).
+- `pkcs7`: `_signerToAsn1()` wrote unauthenticated attributes to a
+  `values` property instead of `value`.
+
 ## 1.4.3 - 2026-11-03
 
 ### Security

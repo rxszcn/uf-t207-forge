@@ -374,8 +374,96 @@ var UTIL = require('../../lib/util');
       '6m/90OGUus11leuRlpgs1hR1TU/ScfPIAAfemPigk18hox9vMMAdRs7JBGdKDDQr\r\n' +
       'c6mfUV75ZWEKFZM7y5bgX0IrolPexuMrOgeJzkzYtoMGwXA5fudHT3Nk53D3tLj3\r\n' +
       'x4KOfz69nJA=\r\n' +
+      '-----END PKCS7-----\r\n',
+    // produced with OpenSSL from the certificate and private key above:
+    //   printf 'Exchange payload for PKCS#7 verification.' > payload.txt
+    //   openssl smime -sign -binary -md sha256 -in payload.txt \
+    //     -signer certificate.pem -inkey privateKey.pem -outform PEM \
+    //     -nodetach -out attached.pem
+    opensslSignedDataAttached:
+      '-----BEGIN PKCS7-----\r\n' +
+      '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\r\n' +
+      '-----END PKCS7-----\r\n',
+    // produced from the same key pair and payload as above, without
+    // -nodetach: the payload is not part of the message
+    opensslSignedDataDetached:
+      '-----BEGIN PKCS7-----\r\n' +
+      'MIIGsAYJKoZIhvcNAQcCoIIGoTCCBp0CAQExDzANBglghkgBZQMEAgEFADALBgkq\r\n' +
+      'hkiG9w0BBwGgggO4MIIDtDCCApwCCQDUVBxA2DXi8zANBgkqhkiG9w0BAQUFADCB\r\n' +
+      'mzELMAkGA1UEBhMCREUxEjAQBgNVBAgMCUZyYW5jb25pYTEQMA4GA1UEBwwHQW5z\r\n' +
+      'YmFjaDEVMBMGA1UECgwMU3RlZmFuIFNpZWdsMRIwEAYDVQQLDAlHZWllcmxlaW4x\r\n' +
+      'FjAUBgNVBAMMDUdlaWVybGVpbiBERVYxIzAhBgkqhkiG9w0BCQEWFHN0ZXNpZUBi\r\n' +
+      'cm9rZW5waXBlLmRlMB4XDTEyMDMxODIyNTc0M1oXDTEzMDMxODIyNTc0M1owgZsx\r\n' +
+      'CzAJBgNVBAYTAkRFMRIwEAYDVQQIDAlGcmFuY29uaWExEDAOBgNVBAcMB0Fuc2Jh\r\n' +
+      'Y2gxFTATBgNVBAoMDFN0ZWZhbiBTaWVnbDESMBAGA1UECwwJR2VpZXJsZWluMRYw\r\n' +
+      'FAYDVQQDDA1HZWllcmxlaW4gREVWMSMwIQYJKoZIhvcNAQkBFhRzdGVzaWVAYnJv\r\n' +
+      'a2VucGlwZS5kZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMsAbQ4f\r\n' +
+      'WevHqP1K1y/ewpMS3vYovBto7IsKBq0v3NmC2kPf3NhyaSKfjOOS5uAPONLffLck\r\n' +
+      '+iGdOLLFia6OSpM60tyQIV9lHoRh7fOEYORab0Z+aBUZcEGT9yotBOraX1YbKc5f\r\n' +
+      '9XO+80eG4XYvb5ua1NHrxWqe4w2p3zGJCKO+wHpvGkbKz0nfu36jwWz5aihfHi9h\r\n' +
+      'p/xs8mfH86mIKiD7f2X2KeZ1PK9RvppA0X3lLb2VLOqMt+FHWicyZ/wjhQZ4oW55\r\n' +
+      'ln2yYJUQ+adlgaYnPrtnsxmbTxM+99oF0F2/HmGrNs8nLZSva1Vy+hmjmWz6/O8Z\r\n' +
+      'xhiIj7oBRqYcAocCAwEAATANBgkqhkiG9w0BAQUFAAOCAQEAvfvtu31GFBO5+mFj\r\n' +
+      'PAoR4BlzKq/H3EPOqS8cm/TjHgDRALwSnwKYCFs/bXqE4iOTD6otV4TusX3EPbqL\r\n' +
+      '2vzZQEcZn6paU/oZZVXwQqMqY5tf2teQiNxqxNmSIEPRHOr2QVBVIx2YF4Po89KG\r\n' +
+      'UqJ9u/3/10lDqRwpsReijr5UKv5aygEcnwcW8+Ne4rTx934UDsutKG20dr5trZfW\r\n' +
+      'QRVS9fS9CFwJehEXHAMUc/0++80NhfQthmWZWlWM1R3dr4TrIPtWdn5z0MtGeDvq\r\n' +
+      'Bk7HjGrhcVS6kAsyZ9y/lfLPjBuxlQAHztEJCWgI4TW3/RLhgfg2gI1noM2n84Cd\r\n' +
+      'misfkjGCArwwggK4AgEBMIGpMIGbMQswCQYDVQQGEwJERTESMBAGA1UECAwJRnJh\r\n' +
+      'bmNvbmlhMRAwDgYDVQQHDAdBbnNiYWNoMRUwEwYDVQQKDAxTdGVmYW4gU2llZ2wx\r\n' +
+      'EjAQBgNVBAsMCUdlaWVybGVpbjEWMBQGA1UEAwwNR2VpZXJsZWluIERFVjEjMCEG\r\n' +
+      'CSqGSIb3DQEJARYUc3Rlc2llQGJyb2tlbnBpcGUuZGUCCQDUVBxA2DXi8zANBglg\r\n' +
+      'hkgBZQMEAgEFAKCB5DAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3\r\n' +
+      'DQEJBTEPFw0yNjExMTYxODU5MDdaMC8GCSqGSIb3DQEJBDEiBCB47m5RX1IMTe+w\r\n' +
+      'k/nuZ8Hbcd28QtcuoVBC7o2jEvfcETB5BgkqhkiG9w0BCQ8xbDBqMAsGCWCGSAFl\r\n' +
+      'AwQBKjALBglghkgBZQMEARYwCwYJYIZIAWUDBAECMAoGCCqGSIb3DQMHMA4GCCqG\r\n' +
+      'SIb3DQMCAgIAgDANBggqhkiG9w0DAgIBQDAHBgUrDgMCBzANBggqhkiG9w0DAgIB\r\n' +
+      'KDANBgkqhkiG9w0BAQEFAASCAQB3rH5rI76op2VNKqovqsNWthnsXzHcTMGm8YWE\r\n' +
+      'UMGVyj927hSl8rfJ6Z9DyXSZWFm0MaY2H1bh7uqXY565KO9ugvxCw7cTJowbhWIa\r\n' +
+      'dm/Hn6UDxRk8/tYuFuHRL0QEYIvB5gjOjJjvt0Xjn28V/aTADGH6SuxF7EBrQ4xz\r\n' +
+      'g8tcC69HK1Sw5dFGAtzT4AYcT1MRmQ0Z2krTyPi4cNWyk3UrnPCkVJ9S8n7nYKzn\r\n' +
+      '8dMFB9fqXvhrfV6M9Uc1GXe0DFcHHDvErIqjHnKFG2LkSsRqHRL++m7VUMRVTC3G\r\n' +
+      'A/gV9HmxvAB7gn0o8CamW0iG2o4aa4piYpoK8fvlfFlWZqJv\r\n' +
       '-----END PKCS7-----\r\n'
   };
+
+  var _opensslContent = 'Exchange payload for PKCS#7 verification.';
 
   describe('pkcs7', function() {
     it('should import message from PEM', function() {
@@ -786,6 +874,326 @@ var UTIL = require('../../lib/util');
       p7.sign();
       var pem = PKCS7.messageToPem(p7);
       ASSERT.equal(pem, _pem.signedDataWithAttrs1949GeneralizedTime);
+    });
+
+    describe('verification', function() {
+      function _sign(content, options) {
+        options = options || {};
+        var p7 = PKCS7.createSignedData();
+        p7.content = UTIL.createBuffer(content, 'utf8');
+        p7.addCertificate(_pem.certificate);
+        p7.addSigner({
+          key: PKI.privateKeyFromPem(_pem.privateKey),
+          certificate: _pem.certificate,
+          digestAlgorithm: PKI.oids.sha256,
+          authenticatedAttributes: options.authenticatedAttributes
+        });
+        p7.sign(options);
+        return p7;
+      }
+
+      // the authenticated attributes required by RFC 2315 sec 9.3
+      function _authenticatedAttributes() {
+        return [{
+          type: forge.pki.oids.contentType,
+          value: forge.pki.oids.data
+        }, {
+          type: forge.pki.oids.messageDigest
+        }, {
+          type: forge.pki.oids.signingTime,
+          value: new Date('1950-01-01T00:00:00Z')
+        }];
+      }
+
+      it('should verify a self-signed message round-tripped through PEM',
+        function() {
+          var p7 = _sign('To be signed.',
+            {authenticatedAttributes: _authenticatedAttributes()});
+          var pem = PKCS7.messageToPem(p7);
+
+          // verify what a receiver would read, not the in-memory object
+          var imported = PKCS7.messageFromPem(pem);
+          ASSERT.equal(imported.signers.length, 1);
+
+          var results = imported.verify();
+          ASSERT.equal(results.length, 1);
+          ASSERT.equal(results[0].digestValid, true);
+          ASSERT.equal(results[0].contentTypeValid, true);
+          ASSERT.equal(results[0].signatureValid, true);
+          ASSERT.equal(results[0].verified, true);
+          ASSERT.equal(
+            results[0].certificate.serialNumber,
+            PKI.certificateFromPem(_pem.certificate).serialNumber);
+        });
+
+      it('should verify a self-signed message with no authenticated attrs',
+        function() {
+          var pem = PKCS7.messageToPem(_sign('To be signed.'));
+          var imported = PKCS7.messageFromPem(pem);
+
+          var results = imported.verify();
+          ASSERT.equal(results.length, 1);
+          // no message-digest attribute, so the content digest is covered by
+          // the signature itself rather than a separate comparison
+          ASSERT.equal(results[0].digestValid, null);
+          ASSERT.equal(results[0].contentTypeValid, null);
+          ASSERT.equal(results[0].signatureValid, true);
+          ASSERT.equal(results[0].verified, true);
+        });
+
+      it('should verify a self-signed detached message', function() {
+        var pem = PKCS7.messageToPem(_sign('To be signed.',
+          {authenticatedAttributes: _authenticatedAttributes(),
+            detached: true}));
+        var imported = PKCS7.messageFromPem(pem);
+
+        // no content in the message
+        ASSERT.equal(imported.content, undefined);
+        ASSERT.throws(function() {
+          imported.verify();
+        }, /the message is detached and no content was provided/);
+
+        var results = imported.verify({content: UTIL.createBuffer('To be signed.')});
+        ASSERT.equal(results[0].verified, true);
+
+        // a string is accepted as well and is UTF-8 encoded like sign()
+        results = imported.verify({content: 'To be signed.'});
+        ASSERT.equal(results[0].verified, true);
+      });
+
+      it('should parse signer information from an OpenSSL signature',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+
+          ASSERT.equal(p7.signers.length, 1);
+          var signer = p7.signers[0];
+          ASSERT.equal(signer.serialNumber, '00d4541c40d835e2f3');
+          ASSERT.equal(signer.digestAlgorithm, PKI.oids.sha256);
+          ASSERT.equal(signer.signatureAlgorithm, PKI.oids.rsaEncryption);
+          ASSERT.equal(signer.issuer.length, 7);
+          ASSERT.equal(signer.issuer[5].value, 'Geierlein DEV');
+          ASSERT.equal(signer.signature.length, 256);
+
+          // the parsed attributes are available to the caller
+          var types = signer.authenticatedAttributes.map(function(attr) {
+            return attr.type;
+          });
+          ASSERT.ok(types.indexOf(PKI.oids.contentType) !== -1);
+          ASSERT.ok(types.indexOf(PKI.oids.messageDigest) !== -1);
+          ASSERT.ok(types.indexOf(PKI.oids.signingTime) !== -1);
+        });
+
+      it('should verify an attached signature produced by OpenSSL',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+          ASSERT.equal(p7.content.bytes(), _opensslContent);
+
+          var results = p7.verify();
+          ASSERT.equal(results.length, 1);
+          ASSERT.equal(results[0].digestValid, true);
+          ASSERT.equal(results[0].contentTypeValid, true);
+          ASSERT.equal(results[0].signatureValid, true);
+          ASSERT.equal(results[0].verified, true);
+        });
+
+      it('should verify a detached signature produced by OpenSSL',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataDetached);
+          ASSERT.equal(p7.content, undefined);
+
+          var results = p7.verify({content: _opensslContent});
+          ASSERT.equal(results.length, 1);
+          ASSERT.equal(results[0].digestValid, true);
+          ASSERT.equal(results[0].signatureValid, true);
+          ASSERT.equal(results[0].verified, true);
+        });
+
+      it('should reject a tampered attached payload', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+        // replace the payload, keeping the signature and attributes
+        p7.content = UTIL.createBuffer(
+          'Exchange payload for PKCS#7 verification!');
+
+        var results = p7.verify();
+        ASSERT.equal(results.length, 1);
+        // the digest attribute no longer matches the content ...
+        ASSERT.equal(results[0].digestValid, false);
+        // ... while the signature over the (untouched) attributes is intact
+        ASSERT.equal(results[0].signatureValid, true);
+        ASSERT.equal(results[0].verified, false);
+      });
+
+      it('should reject a tampered detached payload', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataDetached);
+
+        var results = p7.verify({
+          content: 'Exchange payload for PKCS#7 verification!'
+        });
+        ASSERT.equal(results[0].digestValid, false);
+        ASSERT.equal(results[0].verified, false);
+      });
+
+      it('should prefer caller-provided content over the embedded one',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+          ASSERT.equal(p7.content.bytes(), _opensslContent);
+
+          // the embedded content is valid ...
+          ASSERT.equal(p7.verify()[0].verified, true);
+          // ... but a caller-supplied replacement is what gets verified
+          ASSERT.equal(
+            p7.verify({content: _opensslContent})[0].verified, true);
+          ASSERT.equal(p7.verify({content: 'something else'})[0].digestValid,
+            false);
+        });
+
+      it('should accept ArrayBuffer content', function() {
+        if(typeof Uint8Array === 'undefined') {
+          return;
+        }
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataDetached);
+        var bytes = _opensslContent;
+        var ab = new Uint8Array(bytes.length);
+        for(var i = 0; i < bytes.length; ++i) {
+          ab[i] = bytes.charCodeAt(i) & 0xFF;
+        }
+
+        var results = p7.verify({content: ab.buffer});
+        ASSERT.equal(results[0].verified, true);
+      });
+
+      it('should reject a tampered signature', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+        // flip a bit in the encrypted digest
+        var signature = p7.signers[0].signature;
+        var first = signature.charCodeAt(0) ^ 0x01;
+        p7.signers[0].signature = String.fromCharCode(first) +
+          signature.substr(1);
+
+        var results = p7.verify();
+        ASSERT.equal(results[0].signatureValid, false);
+        ASSERT.equal(results[0].verified, false);
+      });
+
+      it('should reject a tampered authenticated attribute', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+        // modify the DER bytes of the authenticated attributes; the digest
+        // over the SET OF attributes then no longer matches the signature
+        var attrs = p7.signers[0].authenticatedAttributesAsn1;
+        var signingTime = null;
+        for(var i = 0; i < attrs.value.length; ++i) {
+          var type = forge.asn1.derToOid(attrs.value[i].value[0].value);
+          if(type === PKI.oids.signingTime) {
+            signingTime = attrs.value[i].value[1].value[0];
+            break;
+          }
+        }
+        ASSERT.ok(signingTime);
+        // 1959 rather than 1950: same length, different bytes
+        signingTime.value = '590101000000Z';
+
+        var results = p7.verify();
+        ASSERT.equal(results[0].digestValid, true);
+        ASSERT.equal(results[0].signatureValid, false);
+        ASSERT.equal(results[0].verified, false);
+      });
+
+      it('should reject a message with no signers', function() {
+        var p7 = PKCS7.createSignedData();
+        p7.addCertificate(_pem.certificate);
+        var imported = PKCS7.messageFromPem(PKCS7.messageToPem(p7));
+
+        ASSERT.throws(function() {
+          imported.verify();
+        }, /there are no signers/);
+      });
+
+      it('should reject an unknown digest algorithm', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+        p7.signers[0].digestAlgorithm = '1.2.3.4.5';
+
+        ASSERT.throws(function() {
+          p7.verify();
+        }, /Unsupported PKCS#7 message digest algorithm/);
+      });
+
+      it('should reject an unknown signature algorithm', function() {
+        var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+        p7.signers[0].signatureAlgorithm = '1.2.3.4.5';
+
+        ASSERT.throws(function() {
+          p7.verify();
+        }, /Unsupported PKCS#7 signature algorithm/);
+      });
+
+      it('should verify with a certificate that is not in the message',
+        function() {
+          var cert = PKI.certificateFromPem(_pem.certificate);
+          var p7 = PKCS7.createSignedData();
+          p7.content = UTIL.createBuffer('To be signed.', 'utf8');
+          // no certificate added to the message
+          p7.addSigner({
+            key: PKI.privateKeyFromPem(_pem.privateKey),
+            certificate: cert,
+            digestAlgorithm: PKI.oids.sha256,
+            authenticatedAttributes: _authenticatedAttributes()
+          });
+          p7.sign();
+
+          var imported = PKCS7.messageFromPem(PKCS7.messageToPem(p7));
+          ASSERT.equal(imported.certificates.length, 0);
+          ASSERT.throws(function() {
+            imported.verify();
+          }, /no certificate found for signer/);
+
+          var results = imported.verify({certificate: cert});
+          ASSERT.equal(results[0].verified, true);
+        });
+
+      it('should reject a signer with a certificate that does not match',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+          p7.signers[0].serialNumber = '01';
+
+          ASSERT.throws(function() {
+            p7.verify();
+          }, /no certificate found for signer/);
+        });
+
+      it('should re-serialize an imported message without re-signing it',
+        function() {
+          var imported = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+          var pem = PKCS7.messageToPem(imported);
+
+          // the output is byte-for-byte the input, so the signature is still
+          // valid for other implementations and for this one
+          ASSERT.equal(pem, _pem.opensslSignedDataAttached);
+          var results = PKCS7.messageFromPem(pem).verify();
+          ASSERT.equal(results[0].verified, true);
+        });
+
+      it('should import a message with a CMS PEM header', function() {
+        // `openssl cms` writes a "CMS" header for the same content type
+        var pem = _pem.opensslSignedDataAttached
+          .replace('BEGIN PKCS7', 'BEGIN CMS')
+          .replace('END PKCS7', 'END CMS');
+
+        var p7 = PKCS7.messageFromPem(pem);
+        ASSERT.equal(p7.signers.length, 1);
+        ASSERT.equal(p7.verify()[0].verified, true);
+      });
+
+      it('should re-import its own signature after an ASN.1 round trip',
+        function() {
+          var p7 = PKCS7.messageFromPem(_pem.opensslSignedDataAttached);
+          // toAsn1() must not sign again or drop information; converting
+          // back yields an equivalent message
+          var der = forge.asn1.toDer(p7.toAsn1()).getBytes();
+          var reimported = PKCS7.messageFromAsn1(
+            forge.asn1.fromDer(der));
+          ASSERT.equal(reimported.verify()[0].verified, true);
+          ASSERT.equal(reimported.content.bytes(), _opensslContent);
+        });
     });
 
   });
